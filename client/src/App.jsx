@@ -26,7 +26,7 @@ function App() {
         return;
       }
       
-      await axios.post("http://localhost:5000/login", { username });
+      await axios.post("https://neurobase-2.onrender.com", { username });
       setLoggedIn(true);
       await loadCSVs();
     } catch (err) {
@@ -39,7 +39,7 @@ function App() {
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:5000/logout", {});
+      await axios.post("https://neurobase-2.onrender.com/logout", {});
       setLoggedIn(false);
       setCsvList([]);
       setDbId("");
@@ -52,7 +52,7 @@ function App() {
 
   const loadCSVs = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/list_csvs");
+      const res = await axios.get("https://neurobase-2.onrender.com/list_csvs");
       setCsvList(res.data);
     } catch (err) {
       console.error("Load CSVs error:", err);
@@ -76,7 +76,7 @@ function App() {
         withCredentials: true
       };
       
-      const response = await axios.post("http://localhost:5000/upload_csv", formData, config);
+      const response = await axios.post("https://neurobase-2.onrender.com/upload_csvs", formData, config);
       alert(response.data.message);
       loadCSVs();
     } catch (error) {
@@ -100,7 +100,7 @@ function App() {
         return;
       }
       
-      const res = await axios.post("http://localhost:5000/query", {
+      const res = await axios.post("https://neurobase-2.onrender.com/query", {
         db_id: dbId,
         question,
       });
