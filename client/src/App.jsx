@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import "./App.css";
 
- 
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -26,7 +25,7 @@ function App() {
         return;
       }
       
-      await axios.post("https://neurobase-2.onrender.com", { username });
+      await axios.post("https://neurobase-2.onrender.com/login", { username });
       setLoggedIn(true);
       await loadCSVs();
     } catch (err) {
@@ -41,6 +40,7 @@ function App() {
     try {
       await axios.post("https://neurobase-2.onrender.com/logout", {});
       setLoggedIn(false);
+      setUsername("");
       setCsvList([]);
       setDbId("");
       setResponse(null);
@@ -62,26 +62,32 @@ function App() {
 
   const uploadCSV = async () => {
     if (!file) {
-      alert("Please select a file first");
+      setError("Please select a file first");
       return;
     }
     
     try {
+      setLoading(true);
+      setError("");
+      
       const formData = new FormData();
       formData.append("file", file);
-      const config = {
+      
+      const response = await axios.post("https://neurobase-2.onrender.com/upload_csv", formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
         withCredentials: true
-      };
+      });
       
-      const response = await axios.post("https://neurobase-2.onrender.com/upload_csvs", formData, config);
-      alert(response.data.message);
-      loadCSVs();
+      setError("");
+      setFile(null);
+      await loadCSVs();
     } catch (error) {
       console.error("Error uploading CSV:", error);
-      alert(error.response?.data?.error || "Failed to upload CSV");
+      setError(error.response?.data?.error || "Failed to upload CSV");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,6 +155,7 @@ function App() {
               type="file" 
               accept=".csv"
               onChange={e => setFile(e.target.files[0])} 
+              value=""
             />
             <button onClick={uploadCSV} disabled={loading || !file}>
               {loading ? "Uploading..." : "Upload"}
@@ -187,24 +194,26 @@ function App() {
               {response.columns ? (
                 <div>
                   <h3>Results ({response.data.length} rows):</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        {response.columns.map((col, i) => (
-                          <th key={i}>{col}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {response.data.map((row, i) => (
-                        <tr key={i}>
-                          {row.map((cell, j) => (
-                            <td key={j}>{cell}</td>
+                  <div style={{ overflowX: "auto" }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          {response.columns.map((col, i) => (
+                            <th key={i}>{col}</th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {response.data.map((row, i) => (
+                          <tr key={i}>
+                            {row.map((cell, j) => (
+                              <td key={j}>{cell !== null ? cell.toString() : ""}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <p style={{ color: "red" }}>Error: {response.error}</p>
