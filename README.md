@@ -175,9 +175,6 @@ neurobase/
 │   ├── requirements.txt   # Dependencies
 │   ├── users.json         # User data
 │   └── databases/         # SQLite files
-├── docker-compose.yml     # Container orchestration
-├── Dockerfile.backend     # Backend container
-├── Dockerfile.frontend    # Frontend container
 └── README.md
 ```
 
@@ -270,7 +267,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Akshat Bhatt**
 - GitHub: [@akshatbhatt51](https://github.com/akshatbhatt51)
-- Email: your.email@example.com
+- Email: akshatb4567@gmail.com
 
 ## 🙏 Acknowledgments
 
