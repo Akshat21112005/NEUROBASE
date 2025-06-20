@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
 axios.defaults.withCredentials = true;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 function App() {
   const [username, setUsername] = useState("");
@@ -15,6 +16,23 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    checkUserStatus();
+  }, []);
+
+  const checkUserStatus = async () => {
+    try {
+      const res = await axios.get("https://neurobase-2.onrender.com/user_status");
+      if (res.data.logged_in) {
+        setLoggedIn(true);
+        setUsername(res.data.username);
+        await loadCSVs();
+      }
+    } catch (err) {
+      console.log("No existing session");
+    }
+  };
+
   const login = async () => {
     try {
       setLoading(true);
@@ -25,12 +43,21 @@ function App() {
         return;
       }
       
-      await axios.post("https://neurobase-2.onrender.com/login", { username });
-      setLoggedIn(true);
-      await loadCSVs();
+      const response = await axios.post("https://neurobase-2.onrender.com/login", 
+        { username }, 
+        { 
+          headers: { 'Content-Type': 'application/json' },
+          withCredentials: true 
+        }
+      );
+      
+      if (response.status === 200) {
+        setLoggedIn(true);
+        await loadCSVs();
+      }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Login failed. Please try again.");
+      setError(err.response?.data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +65,9 @@ function App() {
 
   const logout = async () => {
     try {
-      await axios.post("https://neurobase-2.onrender.com/logout", {});
+      await axios.post("https://neurobase-2.onrender.com/logout", {}, {
+        withCredentials: true
+      });
       setLoggedIn(false);
       setUsername("");
       setCsvList([]);
@@ -47,16 +76,29 @@ function App() {
       setError("");
     } catch (err) {
       console.error("Logout error:", err);
+      setLoggedIn(false);
+      setUsername("");
+      setCsvList([]);
+      setDbId("");
+      setResponse(null);
+      setError("");
     }
   };
 
   const loadCSVs = async () => {
     try {
-      const res = await axios.get("https://neurobase-2.onrender.com/list_csvs");
+      const res = await axios.get("https://neurobase-2.onrender.com/list_csvs", {
+        withCredentials: true
+      });
       setCsvList(res.data);
     } catch (err) {
       console.error("Load CSVs error:", err);
-      setError("Failed to load CSV list");
+      if (err.response?.status === 403) {
+        setLoggedIn(false);
+        setError("Session expired. Please login again.");
+      } else {
+        setError("Failed to load CSV list");
+      }
     }
   };
 
@@ -109,12 +151,20 @@ function App() {
       const res = await axios.post("https://neurobase-2.onrender.com/query", {
         db_id: dbId,
         question,
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
       });
       
       setResponse(res.data);
     } catch (err) {
       console.error("Query error:", err);
-      setError(err.response?.data?.error || "Query failed. Please try again.");
+      if (err.response?.status === 403) {
+        setLoggedIn(false);
+        setError("Session expired. Please login again.");
+      } else {
+        setError(err.response?.data?.error || "Query failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
