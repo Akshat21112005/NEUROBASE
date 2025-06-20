@@ -9,13 +9,17 @@ import os
 import uuid
 import traceback
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+app.permanent_session_lifetime = timedelta(hours=24)
 
-CORS(app, origins=["https://neurobase-five.vercel.app"], methods=["GET", "POST", "OPTIONS"])
-
+CORS(app, 
+     origins=["https://neurobase-five.vercel.app"], 
+     methods=["GET", "POST", "OPTIONS", "DELETE"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True)
 
 UPLOAD_FOLDER = "./databases/"
 USERS_FILE = "./users.json"
@@ -35,7 +39,6 @@ try:
 except Exception as e:
     print(f"Failed to load model: {e}")
 
- 
 def load_user_data():
     try:
         if os.path.exists(USERS_FILE):
@@ -56,8 +59,8 @@ user_dbs = load_user_data()
 
 @app.before_request
 def before_request():
-    print(f"Request: {request.method} {request.path}")
-    print(f"Session: {dict(session)}")
+    if request.method == 'OPTIONS':
+        return '', 200
 
 @app.route("/", methods=["GET"])
 def home():
@@ -83,6 +86,7 @@ def login():
             
         session["user"] = username
         session.permanent = True
+        
         if username not in user_dbs:
             user_dbs[username] = []
             save_user_data(user_dbs)
@@ -105,7 +109,6 @@ def logout():
 
 @app.route("/user_status", methods=["GET"])
 def user_status():
-    """Get current user status"""
     if "user" not in session:
         return jsonify({"logged_in": False}), 200
     
@@ -122,8 +125,10 @@ def upload_csv():
     try:
         if "user" not in session:
             return jsonify({"error": "Not logged in"}), 403
+            
         user = session["user"]
         file = request.files.get("file")
+        
         if not file or file.filename == '':
             return jsonify({"error": "No file selected"}), 400
             
@@ -152,7 +157,7 @@ def upload_csv():
         df.columns = df.columns.str.strip().str.replace(' ', '_').str.replace('-', '_')
         
         table_name = os.path.splitext(filename)[0].replace('-', '_').replace(' ', '_').lower()
-        if not table_name.isalnum() and '_' not in table_name:
+        if not table_name or not table_name.replace('_', '').isalnum():
             table_name = f"table_{db_id[:8]}"
 
         conn = sqlite3.connect(db_path)
@@ -160,7 +165,8 @@ def upload_csv():
             df.to_sql(table_name, conn, index=False, if_exists="replace")
         except Exception as e:
             conn.close()
-            os.remove(db_path)
+            if os.path.exists(db_path):
+                os.remove(db_path)
             return jsonify({"error": f"Failed to create database: {str(e)}"}), 500
         finally:
             conn.close()
@@ -175,6 +181,8 @@ def upload_csv():
             "column_count": len(df.columns)
         }
         
+        if user not in user_dbs:
+            user_dbs[user] = []
         user_dbs[user].append(db_info)
         save_user_data(user_dbs)
 
@@ -418,7 +426,7 @@ def query():
             "question": question,
             "query": executed_query,
             "columns": columns_result,
-            "data": rows[:100],  
+            "data": rows[:100],
             "row_count": len(rows),
             "table_info": {
                 "name": table_name,
@@ -449,4 +457,4 @@ if __name__ == "__main__":
     print("Starting NeuroBase Flask Server...")
     print(f"Upload folder: {UPLOAD_FOLDER}")
     print(f"Model loaded: {model_loaded}")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
