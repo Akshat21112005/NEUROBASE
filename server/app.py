@@ -14,11 +14,8 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-CORS(app, 
-     origins=["http://localhost:3000"], 
-     supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"])
+CORS(app, origins=["https://neurobase-five.vercel.app"], methods=["GET", "POST", "OPTIONS"])
+
 
 UPLOAD_FOLDER = "./databases/"
 USERS_FILE = "./users.json"
