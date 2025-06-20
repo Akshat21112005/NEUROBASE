@@ -1,0 +1,13 @@
+{
+  "akshatbhatt51": [
+    {
+      "id": "39cd304b-9936-41c6-bb43-ffee2fd9841f",
+      "name": "train.csv",
+      "path": "./databases/akshatbhatt51_39cd304b-9936-41c6-bb43-ffee2fd9841f.db",
+      "table": "train",
+      "uploaded_at": "2025-06-20T13:16:36.938098",
+      "row_count": 7973,
+      "column_count": 7
+    }
+  ]
+}
