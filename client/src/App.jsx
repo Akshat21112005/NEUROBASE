@@ -15,6 +15,7 @@ function App() {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [timestamp, setTimestamp] = useState("");
 
   useEffect(() => {
     checkUserStatus();
@@ -29,7 +30,7 @@ function App() {
         await loadCSVs();
       }
     } catch (err) {
-      console.log("No existing session");
+      console.log("No existing session or server issue.");
     }
   };
 
@@ -37,20 +38,17 @@ function App() {
     try {
       setLoading(true);
       setError("");
-      
       if (!username.trim()) {
         setError("Please enter a username");
         return;
       }
-      
-      const response = await axios.post("https://neurobase-2.onrender.com/login", 
-        { username }, 
-        { 
+      const response = await axios.post("https://neurobase-2.onrender.com/login",
+        { username },
+        {
           headers: { 'Content-Type': 'application/json' },
-          withCredentials: true 
+          withCredentials: true
         }
       );
-      
       if (response.status === 200) {
         setLoggedIn(true);
         await loadCSVs();
@@ -65,9 +63,7 @@ function App() {
 
   const logout = async () => {
     try {
-      await axios.post("https://neurobase-2.onrender.com/logout", {}, {
-        withCredentials: true
-      });
+      await axios.post("https://neurobase-2.onrender.com/logout", {}, { withCredentials: true });
       setLoggedIn(false);
       setUsername("");
       setCsvList([]);
@@ -107,22 +103,17 @@ function App() {
       setError("Please select a file first");
       return;
     }
-    
     try {
       setLoading(true);
       setError("");
-      
       const formData = new FormData();
       formData.append("file", file);
-      
       const response = await axios.post("https://neurobase-2.onrender.com/upload_csv", formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
         withCredentials: true
       });
-      
-      setError("");
       setFile(null);
       await loadCSVs();
     } catch (error) {
@@ -137,17 +128,14 @@ function App() {
     try {
       setLoading(true);
       setError("");
-      
       if (!dbId) {
         setError("Please select a database first");
         return;
       }
-      
       if (!question.trim()) {
         setError("Please enter a question");
         return;
       }
-      
       const res = await axios.post("https://neurobase-2.onrender.com/query", {
         db_id: dbId,
         question,
@@ -155,8 +143,8 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });
-      
       setResponse(res.data);
+      setTimestamp(new Date().toLocaleString());
     } catch (err) {
       console.error("Query error:", err);
       if (err.response?.status === 403) {
@@ -173,17 +161,17 @@ function App() {
   return (
     <div className="container">
       <h1>🧠 NeuroBase AI powered DBMS</h1>
-      
+
       {error && (
         <div className="error-message" style={{ color: "red", marginBottom: "10px" }}>
           {error}
         </div>
       )}
-      
+
       {!loggedIn ? (
         <div className="login-box">
-          <input 
-            placeholder="Enter your username" 
+          <input
+            placeholder="Enter your username"
             value={username}
             onChange={e => setUsername(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && login()}
@@ -201,13 +189,20 @@ function App() {
 
           <div className="section">
             <h2>Upload CSV (max 5) - Current: {csvList.length}/5</h2>
-            <input 
-              type="file" 
+            <input
+              type="file"
               accept=".csv"
-              onChange={e => setFile(e.target.files[0])} 
-              value=""
+              onChange={e => {
+                setFile(e.target.files[0]);
+                console.log("Selected file:", e.target.files[0]);
+              }}
             />
-            <button onClick={uploadCSV} disabled={loading || !file}>
+            {file && <p>Selected: <strong>{file.name}</strong></p>}
+            <button
+              onClick={uploadCSV}
+              disabled={loading || !file}
+              title={!file ? "Choose a file first" : ""}
+            >
               {loading ? "Uploading..." : "Upload"}
             </button>
           </div>
@@ -220,6 +215,7 @@ function App() {
                 <option key={db.id} value={db.id}>{db.name}</option>
               ))}
             </select>
+            {dbId && <button onClick={() => setDbId("")} style={{ marginLeft: "10px" }}>Clear</button>}
           </div>
 
           <div className="section">
@@ -230,9 +226,14 @@ function App() {
               onChange={e => setQuestion(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && sendQuery()}
             />
-            <button onClick={sendQuery} disabled={loading || !dbId || !question.trim()}>
+            <button
+              onClick={sendQuery}
+              disabled={loading || !dbId || !question.trim()}
+              title={!dbId ? "Select a DB" : (!question.trim() ? "Enter question" : "")}
+            >
               {loading ? "Querying..." : "Query"}
             </button>
+            {question && <button onClick={() => setQuestion("")} style={{ marginLeft: "10px" }}>Reset</button>}
           </div>
 
           {response && (
@@ -241,6 +242,7 @@ function App() {
               <code style={{ display: "block", background: "#f5f5f5", padding: "10px", marginBottom: "10px" }}>
                 {response.query}
               </code>
+              {timestamp && <p><strong>Queried at:</strong> {timestamp}</p>}
               {response.columns ? (
                 <div>
                   <h3>Results ({response.data.length} rows):</h3>
