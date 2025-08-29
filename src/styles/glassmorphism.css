@@ -1,0 +1,154 @@
+/* Glassmorphism UI Utilities for NeuroBase */
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(5px) rotate(-1deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Utility classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+/* Glass morphism base styles */
+.glass {
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+}
+
+.glass-strong {
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.glass-subtle {
+  background: rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Gradient definitions */
+.gradient-primary {
+  background: linear-gradient(135deg, #FF9A8B 0%, #FF6F91 50%, #B794F4 100%);
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, #72E6FF 0%, #68FBD0 100%);
+}
+
+.gradient-tertiary {
+  background: linear-gradient(135deg, #A8E6CF 0%, #88D8A3 100%);
+}
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(255, 111, 145, 0.4), 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px rgba(114, 230, 255, 0.4), 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.glow-tertiary {
+  box-shadow: 0 0 20px rgba(168, 230, 207, 0.4), 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus styles for accessibility */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-gradient {
+    animation: none;
+  }
+  
+  .hover-lift {
+    transition: none;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom scrollbar for glass panels */
+.glass-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.glass-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.glass-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Text selection styling */
+::selection {
+  background: rgba(255, 111, 145, 0.3);
+  color: white;
+}
+
+::-moz-selection {
+  background: rgba(255, 111, 145, 0.3);
+  color: white;
+}
