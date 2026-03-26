@@ -1,5 +1,3 @@
-import { getIdToken } from '../firebase/config';
-
 class ApiService {
   constructor() {
     this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -7,16 +5,11 @@ class ApiService {
 
   async request(endpoint, options = {}) {
     try {
-      // Get Firebase token if user is authenticated
       let headers = { 'Content-Type': 'application/json', ...options.headers };
       
-      try {
-        const token = await getIdToken();
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-      } catch (tokenError) {
-        // No Firebase token available - continuing without auth
+      const token = localStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -40,18 +33,14 @@ class ApiService {
   }
 
   // Authentication endpoints
-  login = (username) => this.request('/login', { 
+  login = (email, password) => this.request('/auth/login', { 
     method: 'POST', 
-    body: JSON.stringify({ username }) 
+    body: JSON.stringify({ email, password }) 
   });
 
-  logout = () => this.request('/logout', { method: 'POST' });
-
-  sessionCheck = () => this.request('/session_check');
-
-  firebaseLogin = (firebaseToken, username) => this.request('/api/firebase-login', {
+  register = (name, email, password) => this.request('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ firebase_token: firebaseToken, username })
+    body: JSON.stringify({ name, email, password })
   });
 
   // File upload endpoints
@@ -59,15 +48,10 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
     
-    // Get Firebase token for authentication
     let headers = {};
-    try {
-      const token = await getIdToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } catch (tokenError) {
-      // No Firebase token available for upload - continuing without auth
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     
     const response = await fetch(`${this.baseURL}/upload_csv`, {
@@ -96,16 +80,6 @@ class ApiService {
   query = (question, dbId) => this.request('/query', { 
     method: 'POST', 
     body: JSON.stringify({ question, db_id: dbId }) 
-  });
-
-  enhancedQuery = (question, dbId, context, analysisType) => this.request('/enhanced_query', {
-    method: 'POST',
-    body: JSON.stringify({ 
-      question, 
-      db_id: dbId, 
-      context, 
-      analysis_type: analysisType 
-    })
   });
 
   suggestRefinements = (question, dbId, result) => this.request('/suggest_refinements', { 

@@ -391,7 +391,7 @@ const ProfessionalDashboard = () => {
                           <p className="text-secondary text-sm">{db.file_size || 'Unknown size'} • {db.row_count || '?'} rows</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="px-3 py-1 rounded-full text-xs font-medium bg-green-gradient text-white">
+                          <div className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
                             active
                           </div>
                           <motion.button
@@ -562,7 +562,7 @@ const ProfessionalDashboard = () => {
                     )}
                     
                     <div className="mt-3 text-xs text-secondary">
-                      {result.row_count} rows • Query executed at {new Date(result.execution_time).toLocaleTimeString()}
+                      {result.row_count} rows • Query executed at {new Date().toLocaleTimeString()}
                     </div>
                   </motion.div>
                 )}

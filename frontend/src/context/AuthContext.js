@@ -1,8 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle, logoutFirebase, getIdToken } from '../firebase/config';
 import apiService from '../services/api';
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -18,51 +15,92 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserProfile({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        });
-        // Auto-set authentication status when Firebase user is detected
-        localStorage.setItem('isAuthenticated', 'true');
-      } else {
-        setUserProfile(null);
-        // Clear authentication status when user logs out
-        localStorage.removeItem('isAuthenticated');
-        setLoggedIn(false);
+    const checkSession = async () => {
+      try {
+        const storedAuth = localStorage.getItem('isAuthenticated');
+        const storedUser = localStorage.getItem('user_data');
+        
+        if (storedAuth === 'true' && storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser.id);
+          setUserProfile(parsedUser);
+        }
+      } catch (err) {
+        console.error("Session check failed", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
-    
-    return () => unsubscribe();
+    };
+    checkSession();
   }, []);
 
-  const login = async () => {
+  const login = async (email, password) => {
     setLoading(true);
     setError(null);
     try {
-      // Try Firebase login first
-      try {
-        const user = await signInWithGoogle();
-        const token = await user.getIdToken();
+      const response = await apiService.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.access_token) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user_data', JSON.stringify({
+          id: response.id,
+          email: email,
+          displayName: email.split('@')[0]
+        }));
+        localStorage.setItem('token', response.access_token);
         
-        await apiService.firebaseLogin(token, user.displayName || (user.email ? user.email.split('@')[0] : user.uid));
-        return true;
-      } catch (firebaseError) {
-        // Firebase login failed, using demo mode
-        // Fallback to demo mode if Firebase fails
-        await apiService.firebaseLogin('demo_token', 'demo_user');
+        setUser(response.id);
+        setUserProfile({
+           id: response.id,
+           email: email,
+           displayName: email.split('@')[0]
+        });
         return true;
       }
-    } catch (error) {
-      setError(`Login failed: ${error.message}`);
+      return false;
+    } catch (err) {
+      setError(err.message || "Login failed");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (name, email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiService.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password })
+      });
+      
+      if (response.access_token) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user_data', JSON.stringify({
+          id: response.id,
+          email: email,
+          displayName: name
+        }));
+        localStorage.setItem('token', response.access_token);
+        
+        setUser(response.id);
+        setUserProfile({
+           id: response.id,
+           email: email,
+           displayName: name
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError(err.message || "Registration failed");
       return false;
     } finally {
       setLoading(false);
@@ -70,17 +108,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await logoutFirebase();
-      await apiService.logout();
-      setUser(null);
-      setUserProfile(null);
-      setLoggedIn(false);
-      return true;
-    } catch (error) {
-      setError(`Logout failed: ${error.message}`);
-      return false;
-    }
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('token');
+    setUser(null);
+    setUserProfile(null);
+    return true;
   };
 
   return (
@@ -88,10 +121,12 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         userProfile,
-        loggedIn,
+        loggedIn: !!user,
         loading,
         error,
+        setError,
         login,
+        register,
         logout
       }}
     >

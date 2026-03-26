@@ -1,127 +1,206 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Card from '../common/Card';
-import { User, LogIn } from 'lucide-react';
+import { User, LogIn, Mail, Lock, UserPlus, Brain, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 
 const LoginPage = () => {
-  const { login, loading, loggedIn, error } = useAuth();
+  const { login, register, loading, loggedIn, error, setError } = useAuth();
   const navigate = useNavigate();
   const { addNotification } = useNotifications();
+  const hasRedirected = useRef(false);
+
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: ''
+  });
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
-    if (loggedIn) {
-      localStorage.setItem('isAuthenticated', 'true');
-      addNotification({
-        type: 'info',
-        title: 'Already Logged In',
-        message: 'You are already authenticated. Redirecting to dashboard.',
-      });
-      navigate('/dashboard');
+    if (loggedIn && !hasRedirected.current) {
+      hasRedirected.current = true;
+      navigate('/dashboard', { replace: true });
     }
-    
-    // Show error notification if there's an authentication error
+  }, [loggedIn, navigate]);
+
+  // Show error notification
+  useEffect(() => {
     if (error) {
       addNotification({
         type: 'error',
         title: 'Authentication Error',
-        message: error?.message || 'There was an issue with authentication. Please try again.',
+        message: error || 'There was an issue with authentication. Please try again.',
       });
+      setError(null);
     }
-  }, [loggedIn, navigate, addNotification, error]);
+  }, [error, addNotification, setError]);
 
-  const handleGoogleLogin = async () => {
-    try {
-      const success = await login();
-      if (success) {
-        localStorage.setItem('isAuthenticated', 'true');
-        addNotification({
-          type: 'success',
-          title: 'Login Successful',
-          message: 'Welcome to NeuroBase Dashboard!',
-        });
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      // Login failed - error handled by notification system
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password || (!isLoginView && !formData.username)) {
       addNotification({
         type: 'error',
-        title: 'Login Failed',
-        message: error?.message || 'There was an issue signing in. Please try again.',
+        title: 'Missing Fields',
+        message: 'Please fill in all required fields.',
       });
+      return;
+    }
+
+    try {
+      let success = false;
+      if (isLoginView) {
+        success = await login(formData.email, formData.password);
+      } else {
+        success = await register(formData.username, formData.email, formData.password);
+      }
+
+      if (success) {
+        hasRedirected.current = true;
+        addNotification({
+          type: 'success',
+          title: isLoginView ? 'Login Successful' : 'Registration Successful',
+          message: 'Welcome to NeuroBase!',
+        });
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (err) {
+      // Error handled by AuthContext
     }
   };
 
+  const toggleView = () => {
+    setIsLoginView(!isLoginView);
+    setFormData({ username: '', email: '', password: '' });
+    setError(null);
+  };
+
   return (
-    <div className="w-full h-screen absolute top-0 left-0 z-0 overflow-hidden bg-primary">
-      {/* Clean professional background with subtle gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-tertiary opacity-50"></div>
-      
-      {/* Minimal geometric pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 border border-secondary/20 rounded-full"></div>
-        <div className="absolute top-3/4 right-1/4 w-24 h-24 border border-secondary/20 rounded-full"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-16 h-16 border border-secondary/20 rounded-full"></div>
+    <div className="nb-login-page">
+      {/* Subtle animated background */}
+      <div className="nb-login-bg">
+        <div className="nb-login-orb nb-login-orb-1" />
+        <div className="nb-login-orb nb-login-orb-2" />
+        <div className="nb-login-orb nb-login-orb-3" />
       </div>
-      
-      {/* Login Form */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="w-full"
-        >
-          <Card variant="default" className="backdrop-blur-xl border border-white/20 p-8 rounded-2xl">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-                <User size={28} className="text-silver" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-white">Welcome to NeuroBase</h2>
-                <p className="text-white/70">Sign in to access your AI-powered data platform</p>
-              </div>
+
+      {/* Login Card */}
+      <div className="nb-login-container">
+        <div className="nb-login-card">
+          {/* Brand Header */}
+          <div className="nb-login-brand">
+            <div className="nb-login-logo">
+              <Brain size={28} />
             </div>
-            
-            <div className="space-y-6">
-              <motion.button 
-                className="w-full bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 flex items-center justify-center gap-2 border border-white/20 backdrop-blur-sm"
-                whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(192, 192, 192, 0.3)' }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleLogin}
-                disabled={loading}
+            <div>
+              <h1 className="nb-login-title">
+                {isLoginView ? 'Welcome Back' : 'Join NeuroBase'}
+              </h1>
+              <p className="nb-login-subtitle">
+                {isLoginView ? 'Sign in to your AI workspace' : 'Create your account to get started'}
+              </p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="nb-login-form">
+            {/* Username - register only */}
+            {!isLoginView && (
+              <div className="nb-input-group">
+                <div className="nb-input-icon">
+                  <User size={18} />
+                </div>
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="Display Name"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="nb-input"
+                  autoComplete="name"
+                />
+              </div>
+            )}
+
+            {/* Email */}
+            <div className="nb-input-group">
+              <div className="nb-input-icon">
+                <Mail size={18} />
+              </div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="nb-input"
+                autoComplete="email"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="nb-input-group">
+              <div className="nb-input-icon">
+                <Lock size={18} />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="nb-input"
+                autoComplete={isLoginView ? 'current-password' : 'new-password'}
+              />
+              <button
+                type="button"
+                className="nb-input-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={20} />
-                    <span>Sign in with Google</span>
-                  </>
-                )}
-              </motion.button>
-              
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <div className="h-px bg-white/20 flex-1"></div>
-                <span className="text-white/60 text-sm">Secure Authentication</span>
-                <div className="h-px bg-white/20 flex-1"></div>
-              </div>
-              
-              <div className="text-center text-white/60 text-sm">
-                <p>NeuroBase uses secure authentication to protect your data</p>
-              </div>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-          </Card>
-        </motion.div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="nb-login-btn"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="nb-spinner" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  {isLoginView ? <LogIn size={18} /> : <UserPlus size={18} />}
+                  <span>{isLoginView ? 'Sign In' : 'Create Account'}</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Toggle */}
+          <div className="nb-login-toggle">
+            <span className="nb-login-toggle-text">
+              {isLoginView ? "Don't have an account?" : "Already have an account?"}
+            </span>
+            <button type="button" onClick={toggleView} className="nb-login-toggle-btn">
+              {isLoginView ? 'Create one' : 'Sign in'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
