@@ -2,6 +2,9 @@
   "name": "neurobase-frontend",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "@babel/runtime": "^7.28.3",
     "@emailjs/browser": "^4.4.1",
