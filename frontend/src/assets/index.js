@@ -21,7 +21,6 @@ import tensorflowImg from "./TENSORFLOW.jpeg";
 import pytorchImg from "./PYTORCH.jpeg";
 import numpyImg from "./NUMPY.jpeg";
 import pandasImg from "./PANDAS.jpeg";
-import fastApiImg from "./FASTAPI.jpeg";
 import expressImg from "./EXPRESS.jpeg";
 import dockerImg from "./DOCKER.jpeg";
 import figmaImg from "./FIGMA.jpeg";

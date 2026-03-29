@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Database, Brain, Activity, Search, Settings, User, LogOut, Trash2, BarChart3, Upload, FileText, Menu, X } from 'lucide-react';
+import { Database, Brain, Activity, Search, User, LogOut, Trash2, BarChart3, Upload, FileText, Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
