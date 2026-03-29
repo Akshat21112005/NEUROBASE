@@ -5,7 +5,7 @@ AI-Powered Data Analysis Platform
 [![React](https://img.shields.io/badge/react-18.2.0-blue.svg)](https://reactjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com)
 
-A full-stack web application that enables users to upload CSV/Excel files and query data using natural language. The platform leverages Google's Gemini AI to convert natural language questions into SQL queries and provides interactive data visualizations.
+A full-stack web application that enables users to upload CSV/Excel files and query data using natural language. The platform converts uploaded spreadsheet files into per-user SQLite databases and uses an LLM to translate user questions into SQL queries and provides interactive data visualizations.
 
 [Live Demo](https://neurobase-9352.vercel.app)
 
@@ -19,7 +19,7 @@ NEUROBASE is designed to make data analysis accessible to non-technical users by
 graph TB
     A[File Upload] --> B[SQLite Database Creation]
     B --> C[Natural Language Query Input]
-    C --> D[Gemini AI Processing]
+    C --> D[LLM Processing]
     D --> E[SQL Query Generation]
     E --> F[Query Validation & Execution]
     F --> G[Data Visualization]
@@ -28,7 +28,7 @@ graph TB
 ### Architecture
 
 **Frontend (React 18)**
-- Authentication with Firebase OAuth and demo mode fallback
+- Authentication with JWT (email/password)
 - File upload interface with drag-and-drop support
 - Natural language query input with real-time processing
 - Interactive data visualization using Recharts
@@ -39,7 +39,7 @@ graph TB
 - RESTful API with automatic documentation
 - File processing for CSV, XLSX, and XLS formats
 - SQLite database creation and management per user
-- AI-powered query generation using Google Gemini API
+- AI-powered query generation using Groq (LangChain)
 - SQL query validation for security (read-only operations)
 - Query execution with result formatting
 - AI-generated query refinement suggestions
@@ -49,8 +49,7 @@ graph TB
 ### Prerequisites
 - Python 3.8 or higher
 - Node.js 16 or higher
-- Google Gemini API key ([obtain here](https://makersuite.google.com/app/apikey))
-- Firebase project (optional - demo mode available)
+- Groq API key (required for AI SQL generation)
 
 ### Backend Setup
 
@@ -77,15 +76,21 @@ pip install -r requirements.txt
 4. **Configure environment variables:**
 Create `.env` file with required variables:
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
-SECRET_KEY=your_secret_key_here
-FIREBASE_CREDENTIALS_PATH=./firebase-credentials.json
-UPLOAD_FOLDER=./databases/
-MAX_CSV_PER_USER=15
-MAX_CONTENT_LENGTH=104857600
-HOST=0.0.0.0
+# Server
 PORT=5000
-DEBUG=False
+RELOAD=True
+ALLOWED_ORIGINS=http://localhost:3000
+
+# Auth
+JWT_SECRET_KEY=change-me
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+
+# Database
+MONGODB_URI=
+
+# AI
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
 5. **Start the backend server:**
@@ -107,15 +112,9 @@ npm install
 ```
 
 3. **Configure environment variables:**
-Create `.env.local` file:
+Create `.env` file (or `.env.local`) in `frontend/`:
 ```env
 REACT_APP_API_URL=http://localhost:5000
-REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
 ```
 
 4. **Start the development server:**
@@ -127,7 +126,7 @@ Application runs on `http://localhost:3000`
 ## Usage Guide
 
 ### Data Upload Process
-1. Access the application through the login page or demo mode
+1. Access the application through the login page
 2. Navigate to the dashboard and select "Upload File"
 3. Choose CSV, XLSX, or XLS files (maximum 100MB)
 4. The system automatically creates a SQLite database from your data
@@ -155,16 +154,18 @@ The platform automatically selects appropriate chart types based on data charact
 **Core Components:**
 - `app.py` - Main FastAPI application with all endpoints
 - `databases/` - Directory storing user SQLite databases
-- Authentication system with Firebase Admin SDK integration
+- Authentication system with bcrypt + JWT
 - File processing pipeline using pandas for data transformation
 
 **Key Endpoints:**
-- `POST /login` - User authentication
-- `POST /upload` - File upload and database creation
+- `POST /auth/register` - Create user and return JWT
+- `POST /auth/login` - Login and return JWT
+- `POST /upload_csv` - File upload and database creation
+- `GET /list_csvs` - List user databases
+- `DELETE /delete_csv/{db_id}` - Database deletion
+- `GET /database_info/{db_id}` - Database metadata + schema
 - `POST /query` - Natural language to SQL conversion and execution
-- `GET /databases` - List user databases
-- `DELETE /databases/{db_name}` - Database deletion
-- `POST /refine` - AI-powered query refinement suggestions
+- `POST /suggest_refinements` - AI-powered query refinement suggestions
 
 **Security Features:**
 - SQL injection prevention through query validation
@@ -202,8 +203,11 @@ uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
 pandas>=2.2.0
 python-dotenv>=1.0.0
-google-generativeai>=0.3.0
-firebase-admin>=6.2.0
+langchain-groq
+langchain
+PyJWT
+bcrypt
+motor
 requests>=2.31.0
 openpyxl>=3.1.2
 xlrd>=2.0.1
@@ -214,10 +218,10 @@ itsdangerous>=2.1.2
 ```
 react: ^18.2.0
 react-dom: ^18.2.0
-react-router-dom: ^6.8.1
+react-router-dom: ^7.8.2
 tailwindcss: ^3.2.6
 framer-motion: ^10.0.1
-firebase: ^9.17.2
+firebase: ^11.4.0
 recharts: ^2.5.0
 axios: ^1.3.4
 lucide-react: ^0.321.0
@@ -227,58 +231,51 @@ lucide-react: ^0.321.0
 
 ### Environment Variables
 
-**Backend (.env):**
+**Backend (`backend/.env`):**
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
-SECRET_KEY=your_secret_key_here
-FIREBASE_CREDENTIALS_PATH=./firebase-credentials.json
-UPLOAD_FOLDER=./databases/
-MAX_CSV_PER_USER=15
-MAX_CONTENT_LENGTH=104857600
-HOST=0.0.0.0
 PORT=5000
-DEBUG=False
+RELOAD=True
+ALLOWED_ORIGINS=http://localhost:3000
+JWT_SECRET_KEY=change-me
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+MONGODB_URI=
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-**Frontend (.env.local):**
+**Frontend (`frontend/.env` or `frontend/.env.local`):**
 ```env
 REACT_APP_API_URL=http://localhost:5000
-REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
 ```
 
-### Firebase Setup (Optional)
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
-2. Enable Authentication with Google provider
-3. Generate service account credentials and save as `firebase-credentials.json` in backend directory
-4. Add Firebase configuration to frontend environment variables
+Templates are provided:
+- `backend/.env.example`
+- `frontend/.env.example`
 
 ## API Documentation
 
 The backend provides automatic API documentation at `/docs` when running. Key endpoints:
 
 ### Authentication
-- `POST /login` - Authenticate user with Firebase token or demo mode
+- `POST /auth/register`
+- `POST /auth/login`
 
 ### File Management
-- `POST /upload` - Upload CSV/Excel files and create SQLite databases
-- `GET /databases` - Retrieve list of user databases
-- `DELETE /databases/{db_name}` - Delete specific database
+- `POST /upload_csv`
+- `GET /list_csvs`
+- `DELETE /delete_csv/{db_id}`
+- `GET /database_info/{db_id}`
 
 ### Query Operations
 - `POST /query` - Execute natural language queries against selected database
-- `POST /refine` - Get AI-suggested query refinements
+- `POST /suggest_refinements` - Get AI-suggested query refinements
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Backend fails to start:**
-- Verify Gemini API key is correctly set in `.env`
+- Verify Groq API key is correctly set in `backend/.env`
 - Check Python version compatibility (3.8+)
 - Ensure all dependencies are installed
 
@@ -288,9 +285,8 @@ The backend provides automatic API documentation at `/docs` when running. Key en
 - Verify CORS configuration allows frontend domain
 
 **Authentication issues:**
-- Firebase authentication is optional - demo mode works without setup
-- Verify Firebase configuration if using Google OAuth
-- Check Firebase credentials file path in backend
+- Ensure you are sending `Authorization: Bearer <token>` from the frontend (stored in `localStorage`)
+- If `ALLOWED_ORIGINS` is `*`, credentialed requests are disabled (set explicit origins for production)
 
 **File upload failures:**
 - Supported formats: CSV, XLSX, XLS
@@ -311,13 +307,30 @@ The backend provides automatic API documentation at `/docs` when running. Key en
 1. Connect GitHub repository to Render
 2. Set build command: `pip install -r requirements.txt`
 3. Set start command: `python app.py`
-4. Configure environment variables in Render dashboard
+4. Configure environment variables in Render dashboard (use `backend/.env.example` as reference)
+
+Recommended production environment variables:
+```env
+PORT=5000
+RELOAD=False
+ALLOWED_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
+JWT_SECRET_KEY=long-random-secret
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+MONGODB_URI=your_mongodb_connection_string
+GROQ_API_KEY=your_groq_api_key
+```
 
 **Frontend (Vercel):**
 1. Connect GitHub repository to Vercel
 2. Set root directory to `frontend`
 3. Build command: `npm run build`
 4. Configure environment variables in Vercel dashboard
+
+Required frontend environment variables:
+```env
+REACT_APP_API_URL=https://YOUR-BACKEND-DOMAIN
+```
 
  
  
@@ -361,7 +374,7 @@ NEUROBASE/
 - SQL queries are validated to prevent injection attacks
 - Only SELECT operations are permitted
 - User data is isolated in separate SQLite databases
-- Firebase authentication provides secure user management
+- Authentication is handled via JWT tokens
 - Session tokens are managed securely
 - File uploads are validated for type and size
 

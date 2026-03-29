@@ -1,6 +1,8 @@
 class ApiService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    let url = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    // Remove trailing slash if present to avoid double slashes in requests
+    this.baseURL = url.endsWith('/') ? url.slice(0, -1) : url;
   }
 
   async request(endpoint, options = {}) {

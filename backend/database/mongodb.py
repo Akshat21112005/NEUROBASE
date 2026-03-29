@@ -15,12 +15,21 @@ class MongoDB:
     async def connect(self):
         try:
             if MONGODB_URI:
-                self.client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-                # Test connection
+                # Use a shorter timeout to avoid long hangs (especially important in serverless environments)
+                self.client = motor.motor_asyncio.AsyncIOMotorClient(
+                    MONGODB_URI,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000
+                )
+                # Test connection - this will now timeout after 5s instead of the default 30s
                 await self.client.admin.command('ping')
                 self.db = self.client.neurobase
                 self._connected = True
-                logger.info("MongoDB connected successfully.")
+                
+                # Ensure index on users.email for faster lookup
+                await self.db.users.create_index("email", unique=True)
+                
+                logger.info("MongoDB connected successfully with email index.")
             else:
                 logger.warning("MONGODB_URI not set. Falling back to in-memory store.")
         except Exception as e:
