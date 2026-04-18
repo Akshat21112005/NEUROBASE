@@ -39,7 +39,7 @@ if "*" in _allowed_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
+    allow_origins=["https://neurobase-9352.vercel.app/"],
     allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
