@@ -31,11 +31,16 @@ app = FastAPI(
 # Note: browsers disallow `Access-Control-Allow-Origin: *` when `allow_credentials=true`.
 # If you want credentialed requests, set `ALLOWED_ORIGINS` explicitly.
 _allowed_origins = [o.strip() for o in (ALLOWED_ORIGINS or []) if o and o.strip()]
-_allow_credentials = True
 if not _allowed_origins:
-    _allowed_origins = ["*"]
+    _allowed_origins = ["http://localhost:3000"]
+
+# Always allow credentials since frontend uses credentials: 'include'
+_allow_credentials = True
+# Wildcard origins are incompatible with credentials
 if "*" in _allowed_origins:
-    _allow_credentials = False
+    _allowed_origins = ["http://localhost:3000"]
+    import logging
+    logging.warning("CORS: Wildcard origin (*) not compatible with credentials. Using localhost:3000 instead.")
 
 app.add_middleware(
     CORSMiddleware,

@@ -6,7 +6,7 @@ load_dotenv()
 # Server Settings
 PORT = int(os.getenv("PORT", 5000))
 RELOAD = os.getenv("RELOAD", "True").lower() == "true"
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
 # Auth Settings
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")

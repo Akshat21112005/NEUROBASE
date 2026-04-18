@@ -50,11 +50,9 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
     
-    let headers = {};
+    // For FormData, do NOT set Content-Type header - let browser set it with boundary
     const token = localStorage.getItem('token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
     
     const response = await fetch(`${this.baseURL}/upload_csv`, {
       method: 'POST', 
